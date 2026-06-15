@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CME OI TERMINAL</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #050b14;
+    color: #e0e6f0;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* =================== LOADING SCREEN =================== */
+#loadingScreen {
+    position: fixed;
+    inset: 0;
+    background: #050b14;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+}
+
+.ls-logo {
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #fff;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.ls-logo span { color: #00d4ff; }
+
+.ls-tagline {
+    font-size: clamp(9px, 1.5vw, 12px);
+    color: #3a6080;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.ls-ring-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 40px auto 0;
+}
+
+.ls-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    animation: ringRotate 1.4s linear infinite;
+}
+
+.ls-ring.r1 {
+    border-top-color: #00d4ff;
+    animation-duration: 1.2s;
+}
+
+.ls-ring.r2 {
+    inset: 12px;
+    border-top-color: #0066cc;
+    animation-duration: 1.8s;
+    animation-direction: reverse;
+}
+
+.ls-ring.r3 {
+    inset: 24px;
+    border-top-color: #00ff88;
+    animation-duration: 2.2s;
+}
+
+@keyframes ringRotate { to { transform: rotate(360deg); } }
+
+.ls-center-dot {
+    position: absolute;
+    inset: 36px;
+    background: radial-gradient(circle, #00d4ff22, transparent);
+    border-radius: 50%;
+    border: 1px solid #00d4ff33;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.ls-step {
+    margin-top: 30px;
+    font-size: 12px;
+    color: #00d4ff;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    min-height: 18px;
+    animation: fadeStep 0.5s ease;
+}
+
+@keyframes fadeStep {
+    from { opacity:0; transform:translateY(4px); }
+    to   { opacity:1; transform:translateY(0); }
+}
+
+.ls-bar-wrap {
+    width: clamp(200px, 50vw, 360px);
+    height: 3px;
+    background: #0f1e30;
+    border-radius: 2px;
+    margin-top: 20px;
+    overflow: hidden;
+}
+
+.ls-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00d4ff, #0066cc, #00ff88);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.4s ease;
+}
+
+.ls-dots {
+    display: flex;
+    gap: 6px;
+    margin-top: 24px;
+}
+
+.ls-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0f2a40;
+}
+
+.ls-dot.active { background: #00d4ff; }
+.ls-dot.done   { background: #00ff88; }
+
+.ls-by {
+    position: absolute;
+    bottom: 20px;
+    font-size: 10px;
+    color: #1a3050;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.ls-by span { color: #00d4ff; }
+
+/* =================== HEADER =================== */
+.header {
+    background: linear-gradient(135deg, #070f1c, #0d1b30);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #0f2035;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.header-logo {
+    font-size: clamp(16px, 3vw, 24px);
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.header-logo span { color: #00d4ff; }
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.25);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 11px;
+    color: #00d4ff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.live-dot {
+    width: 7px;
+    height: 7px;
+    background: #00ff88;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:0.4; transform:scale(1.4); }
+}
+
+.next-refresh {
+    font-size: 11px;
+    color: #3a6080;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.next-refresh span { color: #00d4ff; font-weight: 700; }
+
+/* =================== STATUS BAR =================== */
+.status-bar {
+    background: #060d18;
+    padding: 7px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #0a1a28;
+    font-size: 11px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.status-text { color: #4a7090; }
+.status-text span { color: #00d4ff; font-weight: 600; }
+.status-right { color: #2a4060; letter-spacing: 1px; }
+.status-right span { color: #00d4ff; }
+
+/* =================== REFRESH TOAST =================== */
+.refresh-toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(135deg, #0d1b2a, #0f2035);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-size: 12px;
+    color: #00d4ff;
+    z-index: 500;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { opacity:0; transform:translateX(20px); }
+    to   { opacity:1; transform:translateX(0); }
+}
+
+.refresh-toast.show { display: flex; }
+
+.toast-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #0f2035;
+    border-top: 2px solid #00d4ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* =================== MAIN =================== */
+.main { padding: 20px 24px; }
+
+/* TABS */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    background: #070f1c;
+    padding: 5px;
+    border-radius: 10px;
+    width: fit-content;
+    border: 1px solid #0f2035;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 9px 22px;
+    border-radius: 7px;
+    border: none;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.3s;
+    color: #3a6080;
+    background: transparent;
+    text-transform: uppercase;
+}
+
+.tab.active {
+    background: linear-gradient(135deg, #00d4ff, #0066cc);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0,212,255,0.25);
+}
+
+.tab:hover:not(.active) { color: #00d4ff; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* SUMMARY CARDS */
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.sum-card {
+    background: linear-gradient(135deg, #070f1c, #0d1828);
+    border: 1px solid #0f2035;
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.3s;
+}
+
+.sum-card:hover { border-color: #1a3a5f; }
+
+.sum-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.sum-icon.fx     { background: rgba(0,212,255,0.12); border: 1px solid rgba(0,212,255,0.25); }
+.sum-icon.metals { background: rgba(255,215,0,0.12);  border: 1px solid rgba(255,215,0,0.25); }
+.sum-icon.energy { background: rgba(255,120,0,0.12);  border: 1px solid rgba(255,120,0,0.25); }
+
+.sum-label { font-size: 10px; color: #3a6080; letter-spacing: 2px; text-transform: uppercase; }
+.sum-value { font-size: clamp(16px, 2.5vw, 20px); font-weight: 700; color: #fff; margin-top: 4px; }
+.sum-sub   { font-size: 10px; color: #2a4060; margin-top: 2px; }
+
+/* TABLE */
+.table-wrapper {
+    background: #070f1c;
+    border-radius: 12px;
+    border: 1px solid #0f2035;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.table-header {
+    background: linear-gradient(135deg, #09141f, #0d1a2c);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #0f2035;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.table-header h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.badge {
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.badge-fx     { background: rgba(0,212,255,0.12); color: #00d4ff; border: 1px solid rgba(0,212,255,0.25); }
+.badge-metals { background: rgba(255,215,0,0.12);  color: #ffd700; border: 1px solid rgba(255,215,0,0.25); }
+.badge-energy { background: rgba(255,140,0,0.12);  color: #ff8c00; border: 1px solid rgba(255,140,0,0.25); }
+
+/* Responsive table */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+table { width: 100%; border-collapse: collapse; min-width: 520px; }
+
+th {
+    background: #050c16;
+    padding: 11px 16px;
+    text-align: left;
+    font-size: 10px;
+    color: #3a6080;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #0f2035;
+    white-space: nowrap;
+}
+
+td {
+    padding: 13px 16px;
+    font-size: 12px;
+    border-bottom: 1px solid #080f1a;
+    vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,212,255,0.03); cursor: pointer; }
+
+.sym-name { font-weight: 600; color: #c0d8f0; font-size: 12px; }
+.sym-tag  { font-size: 10px; color: #3a6080; margin-top: 2px; letter-spacing: 1px; }
+.vol-val  { color: #fff; font-weight: 600; white-space: nowrap; }
+.oi-val   { color: #8ab0d0; font-weight: 500; white-space: nowrap; }
+.chg-pos  { color: #00ff88; font-weight: 700; white-space: nowrap; }
+.chg-neg  { color: #ff4060; font-weight: 700; white-space: nowrap; }
+.chg-zero { color: #3a6080; white-space: nowrap; }
+
+.chart-btn {
+    background: rgba(0,212,255,0.08);
+    color: #00d4ff;
+    border: 1px solid rgba(0,212,255,0.25);
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.chart-btn:hover {
+    background: rgba(0,212,255,0.18);
+    box-shadow: 0 0 10px rgba(0,212,255,0.15);
+}
+
+/* =================== MODAL =================== */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(3,7,14,0.93);
+    z-index: 3000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+    background: linear-gradient(160deg, #09141f, #070e18);
+    border: 1px solid #1a3050;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 860px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+}
+
+.modal-header {
+    padding: 20px 26px;
+    border-bottom: 1px solid #0f2035;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #0b1a2c, #091525);
+    border-radius: 18px 18px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.modal-title h2 { font-size: clamp(14px, 2.5vw, 18px); font-weight: 700; color: #fff; }
+.modal-title p  { font-size: 10px; color: #3a6080; margin-top: 3px; letter-spacing: 2px; }
+
+.modal-close {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid #1a3050;
+    color: #5a8090;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.modal-close:hover {
+    background: rgba(255,60,60,0.12);
+    color: #ff4060;
+    border-color: rgba(255,60,60,0.4);
+}
+
+.modal-body { padding: 20px 26px; }
+
+.chart-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.ctab {
+    padding: 7px 18px;
+    border-radius: 6px;
+    border: 1px solid #0f2035;
+    background: transparent;
+    color: #3a6080;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.ctab.active {
+    background: rgba(0,212,255,0.12);
+    color: #00d4ff;
+    border-color: rgba(0,212,255,0.35);
+}
+
+.chart-container {
+    background: #050c16;
+    border-radius: 10px;
+    border: 1px solid #0f2035;
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+    height: 260px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.stat-card {
+    background: #050c16;
+    border: 1px solid #0f2035;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+}
+
+.stat-label { font-size: 9px; color: #3a6080; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-size: clamp(14px, 2vw, 18px); font-weight: 700; color: #fff; }
+.stat-sub   { font-size: 9px; color: #2a4060; margin-top: 4px; }
+
+.hist-table-wrap {
+    background: #050c16;
+    border-radius: 10px;
+    border: 1px solid #0f2035;
+    overflow: hidden;
+}
+
+.hist-table-wrap h4 {
+    padding: 12px 16px;
+    font-size: 10px;
+    color: #5a8090;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #0f2035;
+}
+
+.hist-scroll { overflow-x: auto; }
+.hist-table { width: 100%; border-collapse: collapse; min-width: 340px; }
+
+.hist-table th {
+    background: #040a12;
+    padding: 9px 14px;
+    font-size: 9px;
+    color: #3a6080;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    border-bottom: 1px solid #0f2035;
+}
+
+.hist-table td {
+    padding: 10px 14px;
+    font-size: 11px;
+    border-bottom: 1px solid #080f1a;
+}
+
+.hist-table tr:last-child td { border-bottom: none; }
+
+/* EMPTY */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #1a3050;
+}
+
+.empty-state .icon { font-size: 40px; margin-bottom: 14px; }
+.empty-state h3 { font-size: 16px; color: #2a4060; margin-bottom: 6px; }
+.empty-state p  { font-size: 12px; }
+
+/* FOOTER */
+.footer {
+    text-align: center;
+    padding: 18px;
+    color: #1a3050;
+    font-size: 10px;
+    letter-spacing: 3px;
+    border-top: 1px solid #080f1a;
+    margin-top: 10px;
+    text-transform: uppercase;
+}
+
+.footer span { color: #00d4ff; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: #050b14; }
+::-webkit-scrollbar-thumb { background: #0f2035; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00d4ff; }
+
+/* =================== RESPONSIVE =================== */
+@media(max-width: 768px) {
+    .header { padding: 12px 16px; }
+    .main   { padding: 16px; }
+    .summary-row { grid-template-columns: 1fr 1fr; }
+    .stats-grid  { grid-template-columns: 1fr 1fr; }
+    .stats-grid .stat-card:last-child { grid-column: 1/-1; }
+    th:nth-child(5), td:nth-child(5) { display: none; }
+    .next-refresh { display: none; }
+}
+
+@media(max-width: 480px) {
+    .summary-row { grid-template-columns: 1fr; }
+    .tabs { width: 100%; }
+    .tab  { flex: 1; text-align: center; padding: 9px 10px; font-size: 11px; }
+    .modal-body { padding: 14px 16px; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .stats-grid .stat-card:last-child { grid-column: auto; }
+}
+
+</style>
+</head>
+<body>
+
+<!-- =================== LOADING SCREEN =================== -->
+<div id="loadingScreen">
+    <div class="ls-logo">CME <span>OI</span> TERMINAL</div>
+    <div class="ls-tagline">Real-Time Open Interest · FX · Metals · Energy</div>
+
+    <div class="ls-ring-wrap">
+        <div class="ls-ring r1"></div>
+        <div class="ls-ring r2"></div>
+        <div class="ls-ring r3"></div>
+        <div class="ls-center-dot">📡</div>
+    </div>
+
+    <div class="ls-step" id="lsStep">Initializing...</div>
+
+    <div class="ls-bar-wrap">
+        <div class="ls-bar" id="lsBar"></div>
+    </div>
+
+    <div class="ls-dots">
+        <div class="ls-dot" id="dot1"></div>
+        <div class="ls-dot" id="dot2"></div>
+        <div class="ls-dot" id="dot3"></div>
+        <div class="ls-dot" id="dot4"></div>
+    </div>
+
+    <div class="ls-by">Source: <span>CME Group</span> &nbsp;·&nbsp; By <span>Imtiaz Ali</span></div>
+</div>
+
+<!-- =================== REFRESH TOAST =================== -->
+<div class="refresh-toast" id="refreshToast">
+    <div class="toast-spinner"></div>
+    <span id="toastMsg">Refreshing data...</span>
+</div>
+
+<!-- =================== MODAL =================== -->
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal">
+    <div class="modal-header">
+        <div class="modal-title">
+            <h2 id="modalSymbolName">—</h2>
+            <p>10-DAY HISTORICAL DATA · CME GROUP</p>
+        </div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+        <div class="stats-grid" id="modalStats"></div>
+        <div class="chart-tabs">
+            <button class="ctab active" onclick="switchChart('volume',this)">📊 Volume</button>
+            <button class="ctab" onclick="switchChart('oi',this)">📈 Open Interest</button>
+            <button class="ctab" onclick="switchChart('change',this)">⚡ Change</button>
+        </div>
+        <div class="chart-container">
+            <canvas id="mainChart"></canvas>
+        </div>
+        <div class="hist-table-wrap">
+            <h4>📋 Historical Records</h4>
+            <div class="hist-scroll">
+            <table class="hist-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Volume</th>
+                        <th>Open Interest</th>
+                        <th>Change</th>
+                    </tr>
+                </thead>
+                <tbody id="histTableBody"></tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- =================== HEADER =================== -->
+<div class="header">
+    <div class="header-logo">CME <span>OI</span> TERMINAL</div>
+    <div class="header-right">
+        <div class="next-refresh">Next refresh in <span id="countdownTimer">5:00</span></div>
+        <div class="live-badge">
+            <div class="live-dot"></div>
+            <span id="liveLabel">LIVE</span>
+        </div>
+    </div>
+</div>
+
+<!-- =================== STATUS BAR =================== -->
+<div class="status-bar">
+    <div class="status-text" id="statusText">Loading data...</div>
+    <div class="status-right">Source: <span>CME Group</span> · By <span>Imtiaz Ali</span></div>
+</div>
+
+<!-- =================== MAIN =================== -->
+<div class="main">
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('fx',this)">💱 FX</button>
+        <button class="tab" onclick="switchTab('metals',this)">🥇 Metals</button>
+        <button class="tab" onclick="switchTab('energy',this)">⚡ Energy</button>
+    </div>
+
+    <!-- FX -->
+    <div class="section active" id="sec-fx">
+        <div class="summary-row">
+            <div class="sum-card">
+                <div class="sum-icon fx">💱</div>
+                <div>
+                    <div class="sum-label">FX Futures</div>
+                    <div class="sum-value" id="fxCount">—</div>
+                    <div class="sum-sub">Instruments</div>
+                </div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-icon fx">📊</div>
+                <div>
+                    <div class="sum-label">Total Volume</div>
+                    <div class="sum-value" id="fxVol">—</div>
+                    <div class="sum-sub">Contracts Traded</div>
+                </div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-icon fx">📈</div>
+                <div>
+                    <div class="sum-label">Total Open Interest</div>
+                    <div class="sum-value" id="fxOI">—</div>
+                    <div class="sum-sub">Open Positions</div>
+                </div>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <div class="table-header">
+                <h3>FX Futures</h3>
+                <span class="badge badge-fx">FOREIGN EXCHANGE</span>
+            </div>
+            <div class="table-scroll">
+            <div id="fxTableContainer">
+                <div class="empty-state">
+                    <div class="icon">💱</div>
+                    <h3>Loading...</h3>
+                    <p>Fetching CME data</p>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- METALS -->
+    <div class="section" id="sec-metals">
+        <div class="summary-row">
+            <div class="sum-card">
+                <div class="sum-icon metals">🥇</div>
+                <div>
+                    <div class="sum-label">Metals Futures</div>
+                    <div class="sum-value" id="metCount">—</div>
+                    <div class="sum-sub">Instruments</div>
+                </div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-icon metals">📊</div>
+                <div>
+                    <div class="sum-label">Total Volume</div>
+                    <div class="sum-value" id="metVol">—</div>
+                    <div class="sum-sub">Contracts Traded</div>
+                </div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-icon metals">📈</div>
+                <div>
+                    <div class="sum-label">Total Open Interest</div>
+                    <div class="sum-value" id="metOI">—</div>
+                    <div class="sum-sub">Open Positions</div>
+                </div>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <div class="table-header">
+                <h3>Metals Futures</h3>
+                <span class="badge badge-metals">PRECIOUS METALS</span>
+            </div>
+            <div class="table-scroll">
+            <div id="metTableContainer">
+                <div class="empty-state">
+                    <div class="icon">🥇</div>
+                    <h3>Loading...</h3>
+                    <p>Fetching CME data</p>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ENERGY -->
+    <div class="section" id="sec-energy">
+        <div class="summary-row">
+            <div class="sum-card">
+                <div class="sum-icon energy">⚡</div>
+                <div>
+                    <div class="sum-label">Energy Futures</div>
+                    <div class="sum-value" id="engCount">—</div>
+                    <div class="sum-sub">Instruments</div>
+                </div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-icon energy">📊</div>
+                <div>
+                    <div class="sum-label">Total Volume</div>
+                    <div class="sum-value" id="engVol">—</div>
+                    <div class="sum-sub">Contracts Traded</div>
+                </div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-icon energy">📈</div>
+                <div>
+                    <div class="sum-label">Total Open Interest</div>
+                    <div class="sum-value" id="engOI">—</div>
+                    <div class="sum-sub">Open Positions</div>
+                </div>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <div class="table-header">
+                <h3>Energy Futures</h3>
+                <span class="badge badge-energy">ENERGY MARKETS</span>
+            </div>
+            <div class="table-scroll">
+            <div id="engTableContainer">
+                <div class="empty-state">
+                    <div class="icon">⚡</div>
+                    <h3>Loading...</h3>
+                    <p>Fetching CME data</p>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="footer">
+    CME OI TERMINAL &nbsp;·&nbsp; SOURCE: <span>CME GROUP</span> &nbsp;·&nbsp; BY <span>IMTIAZ ALI</span>
+</div>
+
+<script>
+
+/* ============================================================
+   YOUR ORIGINAL EXTRACTOR — UNTOUCHED
+============================================================ */
+
+const FX = new Set([
+    "Australian Dollar Futures",
+    "British Pound Futures",
+    "Canadian Dollar Futures",
+    "Euro FX Futures",
+    "Japanese Yen Futures",
+    "New Zealand Dollar Futures",
+    "Swiss Franc Futures"
+]);
+
+const METALS = new Set([
+    "Gold Futures",
+    "Silver Futures"
+]);
+
+const ENERGY = new Set([
+    "Crude Oil Futures",
+    "Natural Gas Futures",
+    "WTI Crude Oil Futures",
+    "Henry Hub Natural Gas Futures"
+]);
+
+const reportPriority = ["P","F"];
+
+function formatDate(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    return `${y}${m}${day}`;
+}
+
+async function fetchData(date, type, assetClassId){
+    const url =
+    `https://www.cmegroup.com/CmeWS/exp/voiProductsViewExport.ctl?media=xls&tradeDate=${date}&assetClassId=${assetClassId}&reportType=${type}&excluded=CEE,CEU,KCB`;
+    const res = await fetch(url);
+    const buffer = await res.arrayBuffer();
+    const wb = XLSX.read(buffer,{type:"array"});
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
+    return rows;
+}
+
+function extract(rows, symbolSet){
+    let out = [];
+    for(let i=0;i<rows.length;i++){
+        let row = rows[i];
+        let name = String(row[0] || "").trim();
+        if(symbolSet.has(name)){
+            out.push({
+                symbol: name,
+                volume: row[5] ?? null,
+                openInterest: row[6] ?? null,
+                change: row[7] ?? null
+            });
+        }
+    }
+    return out;
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+
+let globalData    = { FX:[], Metals:[], Energy:[] };
+let historyData   = {};
+let mainChartInst = null;
+let currentChartKey = 'volume';
+let currentSymbol   = '';
+let refreshTimer    = null;
+let countdownSecs   = 300;
+let isFirstLoad     = true;
+let latestTradeDate = '';
+
+const SHORT_NAMES = {
+    "Australian Dollar Futures":    "AUD/USD",
+    "British Pound Futures":        "GBP/USD",
+    "Canadian Dollar Futures":      "USD/CAD",
+    "Euro FX Futures":              "EUR/USD",
+    "Japanese Yen Futures":         "USD/JPY",
+    "New Zealand Dollar Futures":   "NZD/USD",
+    "Swiss Franc Futures":          "USD/CHF",
+    "Gold Futures":                 "XAU/USD",
+    "Silver Futures":               "XAG/USD",
+    "Crude Oil Futures":            "CL",
+    "Natural Gas Futures":          "NG",
+    "WTI Crude Oil Futures":        "WTI",
+    "Henry Hub Natural Gas Futures":"HH"
+};
+
+const ASSET_ID = {
+    "Australian Dollar Futures":    3,
+    "British Pound Futures":        3,
+    "Canadian Dollar Futures":      3,
+    "Euro FX Futures":              3,
+    "Japanese Yen Futures":         3,
+    "New Zealand Dollar Futures":   3,
+    "Swiss Franc Futures":          3,
+    "Gold Futures":                 8,
+    "Silver Futures":               8,
+    "Crude Oil Futures":            7,
+    "Natural Gas Futures":          7,
+    "WTI Crude Oil Futures":        7,
+    "Henry Hub Natural Gas Futures":7
+};
+
+/* ============================================================
+   UTILS
+============================================================ */
+
+function numFmt(n){
+    if(n===null||n===undefined||n===""||n==="—") return "—";
+    const num = Number(String(n).replace(/,/g,''));
+    if(isNaN(num)) return "—";
+    return num.toLocaleString('en-US');
+}
+
+function chgFmt(n){
+    if(n===null||n===undefined||n===""||n==="—") return {txt:"—",cls:"chg-zero"};
+    const v = Number(String(n).replace(/,/g,''));
+    if(isNaN(v)) return {txt:"—",cls:"chg-zero"};
+    if(v>0) return {txt:"+"+v.toLocaleString('en-US'), cls:"chg-pos"};
+    if(v<0) return {txt:v.toLocaleString('en-US'),     cls:"chg-neg"};
+    return {txt:"0", cls:"chg-zero"};
+}
+
+function prettyDate(str){
+    if(!str||str.length<8) return str||"—";
+    return `${str.slice(6,8)}/${str.slice(4,6)}/${str.slice(0,4)}`;
+}
+
+function setLsStep(msg, pct){
+    document.getElementById("lsStep").textContent = msg;
+    document.getElementById("lsBar").style.width  = pct + "%";
+}
+
+function setDot(n, state){
+    const el = document.getElementById("dot"+n);
+    if(el){ el.className = "ls-dot " + state; }
+}
+
+function showToast(msg){
+    const t = document.getElementById("refreshToast");
+    document.getElementById("toastMsg").textContent = msg;
+    t.classList.add("show");
+}
+
+function hideToast(){
+    document.getElementById("refreshToast").classList.remove("show");
+}
+
+/* ============================================================
+   FIND LATEST — YOUR ORIGINAL LOGIC
+============================================================ */
+
+async function findLatest(){
+    let d = new Date();
+    for(let i=0;i<7;i++){
+        let date = formatDate(d);
+        for(let type of reportPriority){
+            try{
+                let fxRows    = await fetchData(date, type, 3);
+                let fxData    = extract(fxRows, FX);
+                let metalRows = await fetchData(date, type, 8);
+                let metalData = extract(metalRows, METALS);
+                let energyRows= await fetchData(date, type, 7);
+                let energyData= extract(energyRows, ENERGY);
+
+                if(
+                    fxData.length === 7 &&
+                    metalData.length >= 2 &&
+                    energyData.length >= 2
+                ){
+                    return { date, type, FX:fxData, Metals:metalData, Energy:energyData };
+                }
+
+                if(fxData.length>0 || metalData.length>0 || energyData.length>0){
+                    return { date, type, FX:fxData, Metals:metalData, Energy:energyData, partial:true };
+                }
+            }catch(e){ console.log(e); }
+        }
+        d.setDate(d.getDate()-1);
+    }
+    return null;
+}
+
+/* ============================================================
+   HISTORY FETCHER
+============================================================ */
+
+async function fetchHistory(sym, assetId, latestDate){
+    let history = [];
+    let tradingDays = [];
+    let td = new Date(
+        parseInt(latestDate.slice(0,4)),
+        parseInt(latestDate.slice(4,6))-1,
+        parseInt(latestDate.slice(6,8))
+    );
+    while(tradingDays.length < 10){
+        let dow = td.getDay();
+        if(dow!==0 && dow!==6) tradingDays.unshift(formatDate(td));
+        td.setDate(td.getDate()-1);
+    }
+    for(let hDate of tradingDays){
+        for(let hType of reportPriority){
+            try{
+                let rows  = await fetchData(hDate, hType, assetId);
+                let found = extract(rows, new Set([sym]));
+                if(found.length>0){
+                    history.push({
+                        date: hDate,
+                        volume: found[0].volume,
+                        openInterest: found[0].openInterest,
+                        change: found[0].change
+                    });
+                    break;
+                }
+            }catch(e){}
+        }
+    }
+    return history;
+}
+
+/* ============================================================
+   MAIN LOAD — AUTO ON PAGE VISIT
+============================================================ */
+
+async function loadData(isBackground){
+
+    if(isBackground){
+        showToast("Auto-refreshing CME data...");
+    }
+
+    try{
+
+        if(isFirstLoad){
+            setLsStep("Connecting to CME Group...", 5);
+            setDot(1,"active");
+        }
+
+        const result = await findLatest();
+
+        if(!result){
+            if(isFirstLoad){
+                setLsStep("No data found. Retrying...", 10);
+            }
+            return;
+        }
+
+        latestTradeDate = result.date;
+        globalData = { FX:result.FX, Metals:result.Metals, Energy:result.Energy };
+
+        if(isFirstLoad){
+            setLsStep("Market data received...", 40);
+            setDot(1,"done"); setDot(2,"active");
+        }
+
+        // Render tables immediately
+        renderAll();
+
+        if(isFirstLoad){
+            setLsStep("Fetching 10-day history...", 55);
+            setDot(2,"done"); setDot(3,"active");
+        } else {
+            showToast("Updating historical data...");
+        }
+
+        // Fetch history for all symbols
+        const allSymbols = [
+            ...result.FX.map(x=>x.symbol),
+            ...result.Metals.map(x=>x.symbol),
+            ...result.Energy.map(x=>x.symbol)
+        ];
+
+        for(let i=0; i<allSymbols.length; i++){
+            const sym = allSymbols[i];
+            const pct = 55 + Math.round((i/allSymbols.length)*35);
+            if(isFirstLoad) setLsStep(`History: ${SHORT_NAMES[sym]||sym}...`, pct);
+            const assetId = ASSET_ID[sym] || 3;
+            historyData[sym] = await fetchHistory(sym, assetId, result.date);
+        }
+
+        // Re-render with sparklines
+        renderAll();
+
+        // Update status
+        document.getElementById("statusText").innerHTML =
+            `✅ Trade Date: <span>${prettyDate(result.date)}</span> &nbsp;|&nbsp; 
+             Report: <span>${result.type}</span> &nbsp;|&nbsp; 
+             FX: <span>${result.FX.length}</span> &nbsp;|&nbsp; 
+             Metals: <span>${result.Metals.length}</span> &nbsp;|&nbsp; 
+             Energy: <span>${result.Energy.length}</span> &nbsp;|&nbsp; 
+             Updated: <span>${new Date().toLocaleTimeString()}</span>`;
+
+        if(isFirstLoad){
+            setLsStep("Ready!", 100);
+            setDot(3,"done"); setDot(4,"done");
+            await sleep(600);
+            hideLodingScreen();
+            isFirstLoad = false;
+        } else {
+            hideToast();
+        }
+
+    }catch(e){
+        console.error(e);
+        if(isFirstLoad){
+            setLsStep("Error fetching data. Retrying...", 0);
+            await sleep(3000);
+            loadData(false);
+        } else {
+            hideToast();
+        }
+    }
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function hideLodingScreen(){
+    const ls = document.getElementById("loadingScreen");
+    ls.style.transition = "opacity 0.6s ease";
+    ls.style.opacity    = "0";
+    setTimeout(()=>{ ls.style.display="none"; }, 600);
+}
+
+/* ============================================================
+   AUTO REFRESH EVERY 5 MINUTES
+============================================================ */
+
+function startCountdown(){
+    countdownSecs = 300;
+    clearInterval(refreshTimer);
+
+    refreshTimer = setInterval(()=>{
+        countdownSecs--;
+        const m = String(Math.floor(countdownSecs/60)).padStart(1,"0");
+        const s = String(countdownSecs%60).padStart(2,"0");
+        const el = document.getElementById("countdownTimer");
+        if(el) el.textContent = `${m}:${s}`;
+
+        if(countdownSecs <= 0){
+            clearInterval(refreshTimer);
+            loadData(true).then(()=>{ startCountdown(); });
+        }
+    }, 1000);
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+
+function renderAll(){
+    renderSummary("fxCount","fxVol","fxOI", globalData.FX);
+    renderSummary("metCount","metVol","metOI", globalData.Metals);
+    renderSummary("engCount","engVol","engOI", globalData.Energy);
+
+    renderTable("fxTableContainer",  globalData.FX,     "fx");
+    renderTable("metTableContainer", globalData.Metals,  "metals");
+    renderTable("engTableContainer", globalData.Energy,  "energy");
+}
+
+function renderSummary(cntId, volId, oiId, data){
+    document.getElementById(cntId).textContent = data.length||"0";
+    const totVol = data.reduce((a,b)=>a+(Number(String(b.volume||0).replace(/,/g,''))||0),0);
+    const totOI  = data.reduce((a,b)=>a+(Number(String(b.openInterest||0).replace(/,/g,''))||0),0);
+    document.getElementById(volId).textContent = numFmt(totVol);
+    document.getElementById(oiId).textContent  = numFmt(totOI);
+}
+
+function renderTable(containerId, data, type){
+    if(!data||data.length===0){
+        document.getElementById(containerId).innerHTML=`
+        <div class="empty-state">
+            <div class="icon">📭</div>
+            <h3>No Data</h3>
+            <p>Not available for this date</p>
+        </div>`;
+        return;
+    }
+
+    const rows = data.map(item=>{
+        const c   = chgFmt(item.change);
+        const tag = SHORT_NAMES[item.symbol]||"";
+        const spark = buildSparkSVG(item.symbol);
+        const safeSym = encodeURIComponent(item.symbol);
+        return `
+        <tr onclick="openModal('${safeSym}')">
+            <td>
+                <div class="sym-name">${item.symbol}</div>
+                <div class="sym-tag">${tag}</div>
+            </td>
+            <td class="vol-val">${numFmt(item.volume)}</td>
+            <td class="oi-val">${numFmt(item.openInterest)}</td>
+            <td class="${c.cls}">${c.txt}</td>
+            <td>${spark}</td>
+            <td><button class="chart-btn" onclick="event.stopPropagation();openModal('${safeSym}')">📊 Chart</button></td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById(containerId).innerHTML=`
+    <table>
+        <thead>
+            <tr>
+                <th>Instrument</th>
+                <th>Volume</th>
+                <th>Open Interest</th>
+                <th>Change</th>
+                <th>10D Trend</th>
+                <th>Detail</th>
+            </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ============================================================
+   SPARKLINE
+============================================================ */
+
+function buildSparkSVG(sym){
+    const hist = historyData[sym];
+    if(!hist||hist.length<2) return '<span style="color:#1a3050;font-size:10px">···</span>';
+
+    const vals = hist.map(h=>Number(String(h.volume||0).replace(/,/g,''))||0);
+    const minV = Math.min(...vals);
+    const maxV = Math.max(...vals);
+    const range = maxV-minV||1;
+    const W=80,H=28,pad=3;
+    const step = (W-pad*2)/(vals.length-1);
+
+    const pts = vals.map((v,i)=>{
+        const x = pad+i*step;
+        const y = H-pad-((v-minV)/range)*(H-pad*2);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+
+    const last = vals[vals.length-1];
+    const prev = vals[vals.length-2];
+    const color = last>=prev ? '#00ff88' : '#ff4060';
+    const lx = (pad+(vals.length-1)*step).toFixed(1);
+    const ly = (H-pad-((last-minV)/range)*(H-pad*2)).toFixed(1);
+
+    return `<svg width="${W}" height="${H}" style="display:block;overflow:visible">
+        <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8"
+            stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="${lx}" cy="${ly}" r="2.5" fill="${color}"/>
+    </svg>`;
+}
+
+/* ============================================================
+   TABS
+============================================================ */
+
+function switchTab(id, btn){
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById('sec-'+id).classList.add('active');
+    btn.classList.add('active');
+}
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+function openModal(encodedSym){
+    const sym = decodeURIComponent(encodedSym);
+    currentSymbol   = sym;
+    currentChartKey = 'volume';
+
+    document.getElementById("modalSymbolName").textContent = sym;
+    document.getElementById("modalOverlay").classList.add("show");
+    document.body.style.overflow = "hidden";
+
+    document.querySelectorAll('.ctab').forEach((t,i)=>t.classList.toggle('active',i===0));
+
+    renderModalStats(sym);
+    renderHistTable(sym);
+    renderChart(sym,'volume');
+}
+
+function closeModal(){
+    document.getElementById("modalOverlay").classList.remove("show");
+    document.body.style.overflow = "";
+    if(mainChartInst){ mainChartInst.destroy(); mainChartInst=null; }
+}
+
+document.getElementById("modalOverlay").addEventListener("click",function(e){
+    if(e.target===this) closeModal();
+});
+
+function renderModalStats(sym){
+    const hist = historyData[sym];
+    if(!hist||hist.length===0){
+        document.getElementById("modalStats").innerHTML=
+            `<div style="color:#3a6080;font-size:12px;padding:10px;grid-column:1/-1">
+                Historical data loading...
+            </div>`;
+        return;
+    }
+
+    const latest = hist[hist.length-1];
+    const prev   = hist.length>1 ? hist[hist.length-2] : null;
+    const latVol  = Number(String(latest.volume||0).replace(/,/g,''))||0;
+    const prevVol = prev ? Number(String(prev.volume||0).replace(/,/g,''))||0 : 0;
+    const latOI   = Number(String(latest.openInterest||0).replace(/,/g,''))||0;
+    const prevOI  = prev ? Number(String(prev.openInterest||0).replace(/,/g,''))||0 : 0;
+    const volPct  = prev&&prevVol ? ((latVol-prevVol)/prevVol*100).toFixed(1) : null;
+    const oiPct   = prev&&prevOI  ? ((latOI-prevOI)/prevOI*100).toFixed(1)   : null;
+    const allVols = hist.map(h=>Number(String(h.volume||0).replace(/,/g,''))||0);
+    const avgVol  = Math.round(allVols.reduce((a,b)=>a+b,0)/allVols.length);
+    const maxVol  = Math.max(...allVols);
+
+    document.getElementById("modalStats").innerHTML=`
+    <div class="stat-card">
+        <div class="stat-label">Latest Volume</div>
+        <div class="stat-value" style="color:#00d4ff">${numFmt(latVol)}</div>
+        <div class="stat-sub">${volPct!==null?(volPct>=0?'▲':'▼')+Math.abs(volPct)+'% vs prev':'—'}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Open Interest</div>
+        <div class="stat-value" style="color:#ffd700">${numFmt(latOI)}</div>
+        <div class="stat-sub">${oiPct!==null?(oiPct>=0?'▲':'▼')+Math.abs(oiPct)+'% vs prev':'—'}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">10D Avg Volume</div>
+        <div class="stat-value" style="color:#00ff88">${numFmt(avgVol)}</div>
+        <div class="stat-sub">Peak: ${numFmt(maxVol)}</div>
+    </div>`;
+}
+
+function renderHistTable(sym){
+    const hist  = historyData[sym];
+    const tbody = document.getElementById("histTableBody");
+    if(!hist||hist.length===0){
+        tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;color:#3a6080;padding:20px">No historical data</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = [...hist].reverse().map((h,i)=>{
+        const c = chgFmt(h.change);
+        const isLatest = i===0;
+        return `<tr>
+            <td style="color:${isLatest?'#00d4ff':'#5a8090'};font-weight:${isLatest?700:400}">
+                ${prettyDate(h.date)}
+                ${isLatest?`<span style="font-size:9px;background:rgba(0,212,255,0.12);color:#00d4ff;
+                    padding:2px 6px;border-radius:4px;margin-left:6px">LATEST</span>`:''}
+            </td>
+            <td class="vol-val">${numFmt(h.volume)}</td>
+            <td class="oi-val">${numFmt(h.openInterest)}</td>
+            <td class="${c.cls}">${c.txt}</td>
+        </tr>`;
+    }).join('');
+}
+
+function switchChart(key, btn){
+    currentChartKey = key;
+    document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    if(mainChartInst){ mainChartInst.destroy(); mainChartInst=null; }
+    renderChart(currentSymbol, key);
+}
+
+function renderChart(sym, key){
+    const hist = historyData[sym];
+    const ctx  = document.getElementById("mainChart").getContext("2d");
+
+    if(!hist||hist.length===0){
+        ctx.clearRect(0,0,900,260);
+        ctx.fillStyle="#3a6080";
+        ctx.font="13px Arial";
+        ctx.textAlign="center";
+        ctx.fillText("No historical data available",
+            document.getElementById("mainChart").width/2, 130);
+        return;
+    }
+
+    const labels = hist.map(h=>prettyDate(h.date));
+    let values, label, color, fillColor;
+
+    if(key==='volume'){
+        values=hist.map(h=>Number(String(h.volume||0).replace(/,/g,''))||0);
+        label='Volume'; color='#00d4ff'; fillColor='rgba(0,212,255,0.07)';
+    } else if(key==='oi'){
+        values=hist.map(h=>Number(String(h.openInterest||0).replace(/,/g,''))||0);
+        label='Open Interest'; color='#ffd700'; fillColor='rgba(255,215,0,0.07)';
+    } else {
+        values=hist.map(h=>Number(String(h.change||0).replace(/,/g,''))||0);
+        label='Change'; color='#00ff88'; fillColor='rgba(0,255,136,0.07)';
+    }
+
+    if(mainChartInst){ mainChartInst.destroy(); }
+
+    mainChartInst = new Chart(ctx,{
+        type:'line',
+        data:{
+            labels,
+            datasets:[{
+                label,
+                data:values,
+                borderColor:color,
+                backgroundColor:fillColor,
+                borderWidth:2.2,
+                pointBackgroundColor:color,
+                pointBorderColor:'#050c16',
+                pointBorderWidth:2,
+                pointRadius:4,
+                pointHoverRadius:7,
+                fill:true,
+                tension:0.35
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{display:false},
+                tooltip:{
+                    backgroundColor:'#09141f',
+                    borderColor:'#1a3050',
+                    borderWidth:1,
+                    titleColor:'#5a8090',
+                    bodyColor:'#fff',
+                    padding:10,
+                    callbacks:{ label:ctx=>`${label}: ${numFmt(ctx.parsed.y)}` }
+                }
+            },
+            scales:{
+                x:{
+                    grid:{color:'rgba(255,255,255,0.03)'},
+                    ticks:{color:'#3a6080',font:{size:9}}
+                },
+                y:{
+                    grid:{color:'rgba(255,255,255,0.03)'},
+                    ticks:{color:'#3a6080',font:{size:9},callback:v=>numFmt(v)}
+                }
+            }
+        }
+    });
+}
+
+/* ============================================================
+   BOOT — AUTO LOAD ON EVERY PAGE VISIT
+============================================================ */
+
+window.addEventListener('load', async ()=>{
+    // Start loading immediately on every visit
+    await loadData(false);
+    // Start 5-minute auto refresh countdown
+    startCountdown();
+});
+
+</script>
+</body>
+</html>
